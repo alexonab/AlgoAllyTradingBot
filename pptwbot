@@ -1,0 +1,20 @@
+#! /bin/sh
+# /etc/init.d/pptwbot
+ 
+case "$1" in
+  start)
+    echo "Starting the Profit Planet TastyWorks Bot"
+    cd /home/ec2-user/
+    python3 /home/ec2-user/pptwbot.py &
+    ;;
+  stop)
+    echo "Stopping example"
+    killall python3
+    ;;
+  *)
+    echo "Usage: /etc/init.d/pptwbot{start|stop}"
+    exit 1
+    ;;
+esac
+ 
+exit 0

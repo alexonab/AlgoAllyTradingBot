@@ -1,0 +1,55 @@
+from decimal import Decimal
+from dataclasses import dataclass
+
+# WARNING: This script will act on all positions within your account.  Please use a dedicated tastyworks account with this script.
+# WARNING: Don't manually set stock price alerts on this tastyworks account.  They are used by this script to fire off stop market orders.
+# WARNING: Profit\Loss calculation includes the fees (up to $10) tastyworks charges to enter trades.
+
+@dataclass
+class Settings():
+    # Enter trades with a market order.  Market orders are strongly discouraged.  False = Limit order at suggested entry price.
+    EnterWithMarketOrder: bool = False
+    # If Entering with a Limit Order, increase the limit price by this amount.
+    IncreaseEntryLimitOrderBy: Decimal = Decimal('0.0')
+    # On Updates, if no position was taken cancel orders if price has gone up more than this amount.
+    EntryPriceDriftLimit: Decimal = Decimal('.15')
+    # Each entry trade will risk no more than this dollar amount and will be limited to this number of contracts.  Whichever comes first wins.
+    MaxBet: Decimal = 100
+    MaxContracts: int = 1
+    # On Entry alerts, Avoid these tickers.  Add a new append line for each one.
+    AvoidStocks = []
+    AvoidStocks.append('TSLA')
+    # Don't enter alerts with these risk levels.  To add more just copy the append line.
+    AvoidRiskLevels = []
+    AvoidRiskLevels.append('EXTREME')
+    # On updates, Adjust the suggested stock price alert by this amount.  Enter a + number.  This value will be subtracted for calls and added for puts.
+    AdjustStockPriceAlertBy: Decimal = Decimal('0.00')
+    # Automatically execute a market sell order if a stock price alert fires for a symbol.
+    MarketSellOnAlert: bool = False
+    # Automatically execute a market sell order when the alert is deactivated.
+    MarketSellOnDeactivate: bool = False
+    # If % increase is >= this, automatically enter a limit sell order at the market price. Set to 0 to disable.  Prices checked every 2 seconds.
+    AutoCloseAtProfitPercent: Decimal = Decimal('0')
+    # If the profit is above the % configured in AutoCloseAtProfitPercent, set a stop market order instead of a limit order.  This will continue to be moved up every 2 seconds as the profit increases.
+    UseStopMarketOrderForProfitPercentExit: bool = True
+    # This value is subtracted from the contract market price and then used as the stop trigger when UseStopMarketOrderForProfitPercentExit = True.
+    ProfitPercentExitTriggerPriceDelta: Decimal = Decimal('.02')
+    # If % loss is >= this, automatically enter a market sell order. Set to 0 to disable.  Prices checked every 2 seconds.
+    AutoCloseAtLossPercent: Decimal = Decimal('0')
+    # Turn this on in order to treat the commands on the test ch sent by your account as real.
+    execute_from_test_channel: bool = False
+    # Chanel Names to listen to
+    test_channel: str = 'test'
+    alert_channel: str = 'options'
+    chat_channel: str = 'trading-floor'
+    #Entry and exit regex.  These shouldn't need to be changed unless the signal format changes.  Test here by selecting python on the left: https://regex101.com/
+    EntryRegex: str = r'^\[OPEN\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})\s*\[MARK\]\s*\$?\s*(?P<Mark>\d{0,3}\.?\d{0,4})\s*\[ENTRY\]\s*\$?\s*(?P<Entry>\d{0,3}\.?\d{0,4})\s*\[STOP\]\s*\$?\s*(?P<OptionStop>\d{0,3}\.?\d{0,4})\s*\[CLOSE\]\s*(?P<StockStop>\d{0,3}\.?\d{0,4})'
+    UpdateRegex: str = r'^\[UPDATE\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})\s*\[MARK\]\s*\$?\s*(?P<Mark>\d{0,3}\.?\d{0,4})\s*\[ENTRY\]\s*\$?\s*(?P<Entry>\d{0,3}\.?\d{0,4})\s*\[STOP\]\s*\$?\s*(?P<OptionStop>\d{0,3}\.?\d{0,4})\s*\[CLOSE\]\s*(?P<StockStop>\d{0,3}\.?\d{0,4})'
+    DeactivateRegex: str = r'^\[CLOSE\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})'
+    # TastyWorks Creds.  If you don't have an account, create one with my referral code: https://start.tastyworks.com/#/login?referralCode=FK6S48BX47
+    tasty_user: str = ''
+    tasty_password: str = ''
+    # The account number for the tastyworks cash account you'd like the script to use.
+    tasty_account_number: str = ''
+    # Get your discord token from the discord web client.  Instructions here: https://discordhelp.net/discord-token
+    Discord_Token: str = ''

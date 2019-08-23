@@ -1,0 +1,3 @@
+[submodule "tastyworks_api"]
+	path = tastyworks_api
+	url = https://github.com/joshs85/tastyworks_api.git
