@@ -40,11 +40,11 @@ class Settings():
     execute_from_test_channel: bool = False
     # Chanel Names to listen to
     test_channel: str = 'test'
-    alert_channel: str = 'options'
-    chat_channel: str = 'trading-floor'
+    alert_channel: str = 'ally-ideas'
+    chat_channel: str = 'trade-floor'
     #Entry and exit regex.  These shouldn't need to be changed unless the signal format changes.  Test here by selecting python on the left: https://regex101.com/
-    EntryRegex: str = r'^\[OPEN\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})\s*\[MARK\]\s*\$?\s*(?P<Mark>\d{0,3}\.?\d{0,4})\s*\[ENTRY\]\s*\$?\s*(?P<Entry>\d{0,3}\.?\d{0,4})\s*\[STOP\]\s*\$?\s*(?P<OptionStop>\d{0,3}\.?\d{0,4})\s*\[CLOSE\]\s*(?P<StockStop>\d{0,3}\.?\d{0,4})'
-    UpdateRegex: str = r'^\[UPDATE\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})\s*\[MARK\]\s*\$?\s*(?P<Mark>\d{0,3}\.?\d{0,4})\s*\[ENTRY\]\s*\$?\s*(?P<Entry>\d{0,3}\.?\d{0,4})\s*\[STOP\]\s*\$?\s*(?P<OptionStop>\d{0,3}\.?\d{0,4})\s*\[CLOSE\]\s*(?P<StockStop>\d{0,3}\.?\d{0,4})'
+    EntryRegex: str = r'^\[OPEN\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})\s*\[MARK\]\s*\$?\s*(?P<Mark>\d{0,3}\.?\d{0,4})'
+    UpdateRegex: str = r'^\[UPDATE\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})\s*\[MARK\]\s*\$?\s*(?P<Mark>\d{0,3}\.?\d{0,4})'
     DeactivateRegex: str = r'^\[CLOSE\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})'
     # TastyWorks Creds.  If you don't have an account, create one with my referral code: https://start.tastyworks.com/#/login?referralCode=FK6S48BX47
     tasty_user: str = ''
