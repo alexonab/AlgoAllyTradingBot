@@ -124,10 +124,8 @@ async def ProcessUpdateSignal(Update):
     Ticker = Update.group('Ticker').upper()
     ExpDate = get_expire_date_from_string(Update.group('Exp'))
     Strike = Decimal(Update.group('Strike'))
-    StockStop = Decimal(Update.group('StockStop'))
-    OptionStop = Decimal(Update.group('OptionStop'))
     CurrentPrice = Decimal(Update.group('Mark'))
-    LOGGER.info ('Update received for {0} Mark: {1} StockStop: {2} OptionStop: {3}'.format(Ticker, CurrentPrice, StockStop, OptionStop))
+    LOGGER.info ('Update received for {0} Mark: {1}'.format(Ticker, CurrentPrice))
     LOGGER.info ('Getting Positions for {}...'.format(Ticker))
     positions = await GetPositions(Ticker)
     LOGGER.info ('Getting Orders for {}...'.format(Ticker))
@@ -137,9 +135,9 @@ async def ProcessUpdateSignal(Update):
         for position in positions:
             option_obj = position.get_option_obj()
             if option_obj.option_type == OptionType.CALL:
-                stockstop_adjusted = StockStop - Settings.AdjustStockPriceAlertBy
+                stockstop_adjusted = CurrentPrice - Settings.AdjustStockPriceAlertBy
             elif option_obj.option_type == OptionType.PUT:
-                stockstop_adjusted = StockStop + Settings.AdjustStockPriceAlertBy
+                stockstop_adjusted = CurrentPrice + Settings.AdjustStockPriceAlertBy
             LOGGER.info('Setting an alert for {} at adjusted stock price of ${}'.format(Ticker, stockstop_adjusted))
             ret = await SetAlertForPosition(position, stockstop_adjusted)
             LOGGER.info('Returned Data: {}'.format(ret))
@@ -405,7 +403,7 @@ try:
 except KeyboardInterrupt:
     pass
 except Exception as ex:
-    LOGGER.error('An unexpected error occurred in the main loop: {}'.format(ex.message))
+    LOGGER.error('An unexpected error occurred in the main loop: {}'.format(ex))
     LOGGER.fatal(ex, exc_info=True)
 finally:
     loop.run_until_complete(client.logout())
