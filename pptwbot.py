@@ -92,7 +92,7 @@ async def ProcessEntrySignal(Entry):
     ExpDate = get_expire_date_from_string(Entry.group('Exp'))
     Strike = Decimal(Entry.group('Strike'))
     Mark = Decimal(Entry.group('Mark'))
-    Price = Decimal(Entry.group('Entry')) + Settings.IncreaseEntryLimitOrderBy
+    Price = Decimal(Entry.group('Mark')) + Settings.IncreaseEntryLimitOrderBy
     Quantity = int(Settings.MaxBet/(Price * 100))
     if Quantity > Settings.MaxContracts:
         Quantity = Settings.MaxContracts
@@ -100,7 +100,7 @@ async def ProcessEntrySignal(Entry):
         opt_type = OptionType.CALL
     elif Entry.group('Type').upper() == 'PUT':
         opt_type = OptionType.PUT
-    LOGGER.info ('{} Entry signal received. Ticker: {} Strike: {} Exp: {} Entry: {} Mark: {}'.format(opt_type, Ticker, Strike, ExpDate, Price, Mark))
+    LOGGER.info ('{} Entry signal received. Ticker: {} Strike: {} Exp: {} Mark: {}'.format(opt_type, Ticker, Strike, ExpDate, Mark))
     if Quantity > 0:
         if not Ticker in Settings.AvoidStocks:
             LOGGER.info ('Canceling any existing orders for the ticker')
