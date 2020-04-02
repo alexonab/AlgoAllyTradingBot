@@ -3,6 +3,7 @@ import time
 import discord
 import asyncio
 import calendar
+import math
 import logging
 import logging.config
 from os import environ
@@ -40,16 +41,16 @@ async def on_ready():
     LOGGER.info(client.user.name)
     LOGGER.info(client.user.id)
     LOGGER.info('------')
-    for server in client.servers:
-        if server.name == 'Profit Planet Pro':
-            LOGGER.info ('{0} Server ID: {1}'.format(server.name, server.id))
-            for channel in server.channels:
-                if channel.name == Settings.alert_channel:
-                    LOGGER.info ('Signals Channel Name: {0} ID: {1}'.format(channel.name, channel.id))
-                if channel.name == Settings.test_channel:
-                    LOGGER.info ('Test Channel Name: {0} ID: {1}'.format(channel.name, channel.id))
-                if channel.name == Settings.chat_channel:
-                    LOGGER.info ('Trading Floor Channel Name: {0} ID: {1}'.format(channel.name, channel.id))
+    #for server in client.servers:
+    #    if server.name == 'Profit Planet Pro':
+    #        LOGGER.info ('{0} Server ID: {1}'.format(server.name, server.id))
+    #        for channel in server.channels:
+    #            if channel.name == Settings.alert_channel:
+    #                LOGGER.info ('Signals Channel Name: {0} ID: {1}'.format(channel.name, channel.id))
+    #            if channel.name == Settings.test_channel:
+    #                LOGGER.info ('Test Channel Name: {0} ID: {1}'.format(channel.name, channel.id))
+    #            if channel.name == Settings.chat_channel:
+    #                LOGGER.info ('Trading Floor Channel Name: {0} ID: {1}'.format(channel.name, channel.id))
 
 @client.event
 async def on_message(message):
@@ -57,10 +58,19 @@ async def on_message(message):
         LOGGER.info ('Options signal received: {}'.format(message.content))
         message_ucase = message.content.upper()
         Entry = re.search(Settings.EntryRegex, message_ucase)
+        Add = re.search(Settings.AddRegex, message_ucase)
+        ScaleIn = re.search(Settings.ScaleInRegex, message_ucase)
+        ScaleOut = re.search(Settings.ScaleOutRegex, message_ucase)
         Update = re.search(Settings.UpdateRegex, message_ucase)
         Deactivate = re.search(Settings.DeactivateRegex, message_ucase)
         if Entry:
             await ProcessEntrySignal(Entry)
+        elif Add:
+            await ProcessAddSignal(Add)
+        elif ScaleIn:
+            await ProcessScaleInSignal(ScaleIn)
+        elif ScaleOut:
+            await ProcessScaleOutSignal(ScaleOut)
         elif Update:
             await ProcessUpdateSignal(Update)
         elif Deactivate:
@@ -73,15 +83,15 @@ async def on_message(message):
         if Entry:
             if Settings.execute_from_test_channel and message.author.name == client.user.name:
                 await ProcessEntrySignal(Entry)
-            await client.add_reaction(message, '\N{THUMBS UP SIGN}')
+            #await client.add_reaction(message, '\N{THUMBS UP SIGN}')
         elif Update:
             if Settings.execute_from_test_channel and message.author.name == client.user.name:
                 await ProcessUpdateSignal(Update)
-            await client.add_reaction(message, '\N{THUMBS UP SIGN}')
+            #await client.add_reaction(message, '\N{THUMBS UP SIGN}')
         elif Deactivate:
             if Settings.execute_from_test_channel and message.author.name == client.user.name:
                 await ProcessDeactivationSignal(Deactivate)
-            await client.add_reaction(message, '\N{THUMBS UP SIGN}')
+            #await client.add_reaction(message, '\N{THUMBS UP SIGN}')
     elif message.channel.name == Settings.chat_channel:
         print ('{0}:@{1} - {2}'.format(message.channel.name, message.author.name, message.content))
 
@@ -93,14 +103,19 @@ async def ProcessEntrySignal(Entry):
     Strike = Decimal(Entry.group('Strike'))
     Mark = Decimal(Entry.group('Mark'))
     Price = Decimal(Entry.group('Mark')) + Settings.IncreaseEntryLimitOrderBy
+    if Settings.MaxPercentBp > 0:
+        Settings.MaxBet = Decimal((Settings.MaxPercentBp * buying_power ) / 100)
+    # Ensure option contracts trading above $3 are priced at 5 cent increments
+    if Settings.IncreaseEntryLimitOrderBy > 0 and Price > 3:
+        Price = Decimal(math.ceil(Price / Decimal(.05)) * .05)
     Quantity = int(Settings.MaxBet/(Price * 100))
-    if Quantity > Settings.MaxContracts:
+    if Settings.MaxPercentBp == 0 and Quantity > Settings.MaxContracts:
         Quantity = Settings.MaxContracts
     if Entry.group('Type').upper() == 'CALL':
         opt_type = OptionType.CALL
     elif Entry.group('Type').upper() == 'PUT':
         opt_type = OptionType.PUT
-    LOGGER.info ('{} Entry signal received. Ticker: {} Strike: {} Exp: {} Mark: {}'.format(opt_type, Ticker, Strike, ExpDate, Mark))
+    LOGGER.info ('{} Entry signal received. Ticker: {} Strike: {} Exp: {} Price: {}'.format(opt_type, Ticker, Strike, ExpDate, Price))
     if Quantity > 0:
         if not Ticker in Settings.AvoidStocks:
             LOGGER.info ('Canceling any existing orders for the ticker')
@@ -149,7 +164,92 @@ async def ProcessUpdateSignal(Update):
                 result = await CancelOrderByID(order.details.order_id)
                 LOGGER.info('Final Result: {}'.format(result))
     else:
-        LOGGER.info('No orders or positions found.  No action taken.')
+        LOGGER.info('No orders or positions found.  No action taken on Update Signal.')
+
+# ScaleIn Processing
+
+async def ProcessScaleInSignal(ScaleIn):
+    if not Settings.AutoScaleIn:
+        return
+    Ticker = ScaleIn.group('Ticker').upper()
+    ExpDate = get_expire_date_from_string(ScaleIn.group('Exp'))
+    Strike = Decimal(ScaleIn.group('Strike'))
+    CurrentPrice = Decimal(ScaleIn.group('Mark')) + Settings.IncreaseEntryLimitOrderBy
+    LOGGER.info ('Scale In received for {0} Mark: {1}'.format(Ticker, CurrentPrice))
+    LOGGER.info ('Getting Positions for {}...'.format(Ticker))
+    if Settings.IncreaseEntryLimitOrderBy > 0 and Price > 3:
+        CurrentPrice = Decimal(math.ceil(Price / Decimal(.05)) * .05)
+    positions = await GetPositions(Ticker)
+    if positions:
+        LOGGER.info ('Found {} open position(s) for {}...'.format(len(positions), Ticker))
+        for position in positions:
+            option_obj = position.get_option_obj()
+            Quantity = Settings.ScaleAmount
+            if option_obj.quantity <= Settings.MaxContracts:
+                LOGGER.info ('Executing order with qty of {}'.format(Quantity))
+                ret = await EnterTrade(Ticker, CurrentPrice, ExpDate, Strike, option_obj.option_type, Quantity)
+                LOGGER.info ('Returned Data: {}'.format(ret))
+            else:
+                LOGGER.info ('Quantity is {} due to max bet {}.  No action taken.'.format(Quantity, Settings.MaxContracts))
+    else:
+        LOGGER.info('No positions found.  No action taken on Scale In Signal.')
+
+async def ProcessAddSignal(ScaleIn):
+    if not Settings.AutoScaleIn:
+        return
+    Ticker = ScaleIn.group('Ticker').upper()
+    ExpDate = get_expire_date_from_string(ScaleIn.group('Exp'))
+    Strike = Decimal(ScaleIn.group('Strike'))
+    CurrentPrice = Decimal(ScaleIn.group('Mark')) + Settings.IncreaseEntryLimitOrderBy
+    LOGGER.info ('Add received for {0} Mark: {1}'.format(Ticker, CurrentPrice))
+    LOGGER.info ('Getting Positions for {}...'.format(Ticker))
+    if Settings.IncreaseEntryLimitOrderBy > 0 and Price > 3:
+        CurrentPrice = Decimal(math.ceil(Price / Decimal(.05)) * .05)
+    positions = await GetPositions(Ticker)
+    if positions:
+        LOGGER.info ('Found {} open position(s) for {}...'.format(len(positions), Ticker))
+        for position in positions:
+            option_obj = position.get_option_obj()
+            Quantity = Settings.ScaleAmount
+            if option_obj.quantity <= Settings.MaxContracts:
+                LOGGER.info ('Executing order with qty of {}'.format(Quantity))
+                ret = await EnterTrade(Ticker, CurrentPrice, ExpDate, Strike, option_obj.option_type, Quantity)
+                LOGGER.info ('Returned Data: {}'.format(ret))
+            else:
+                LOGGER.info ('Quantity is {} due to max bet {}.  No action taken.'.format(Quantity, Settings.MaxContracts))
+    else:
+        LOGGER.info('No positions found.  No action taken on Scale In Signal.')
+
+# ScaleOut Processing
+
+async def ProcessScaleOutSignal(ScaleOut):
+    if not Settings.AutoScaleOut:
+        return
+    Ticker = ScaleOut.group('Ticker').upper()
+    ExpDate = get_expire_date_from_string(ScaleOut.group('Exp'))
+    Strike = Decimal(ScaleOut.group('Strike'))
+    CurrentPrice = Decimal(ScaleOut.group('Mark'))
+    LOGGER.info ('Scale Out received for {0} Mark: {1}'.format(Ticker, CurrentPrice))
+    LOGGER.info ('Getting Positions for {}...'.format(Ticker))
+    positions = await GetPositions(Ticker)
+    if positions:
+        LOGGER.info ('Found {0} open position(s) for {1}...'.format(len(positions), Ticker))
+        for position in positions:
+            option_obj = position.get_option_obj()
+            if position.quantity > Settings.ScaleAmount:
+                position.quantity = option_obj.quantity - Settings.ScaleAmount
+                if Settings.MarketSellOnScaleOut:
+                    LOGGER.info('Closing {0} contract(s) for {1} at market price'.format(position.quantity, Ticker))
+                    result = await ExitTradeWithMarketOrder(position)
+                    LOGGER.info('Returned Data: {}'.format(result))
+                else:
+                    LOGGER.info('Closing {0} contract(s) for {1} at limit price {2}'.format(position.quantity, Ticker, CurrentPrice))
+                    result = await ExitTradeWithLimitOrder(position, CurrentPrice)
+                    LOGGER.info('Returned Data: {}'.format(result))
+            else:
+                LOGGER.info ('Quantity is {0} not enough contracts to scale out of {1}.  No action taken.'.format(option_obj.quantity, Settings.ScaleAmount))
+    else:
+        LOGGER.info('No positions found.  No action taken on Scale Out Signal.')
 
 # Exit Strategies
 
@@ -393,6 +493,8 @@ for account in tw_accounts:
 if not tasty_acct:
     raise Exception('Could not find a TastyWorks cash account with account number {} in the list of accounts: {}'.format(Settings.tasty_account_number, tw_accounts))
 
+buying_power = Decimal(asyncio.new_event_loop().run_until_complete(TradingAccount.get_balance(tasty_client, tasty_acct))["equity-buying-power"])
+#buying_power = Decimal(5000.0)
 loop = asyncio.get_event_loop()
 
 try:
@@ -410,3 +512,4 @@ finally:
     loop.run_until_complete(client.close())
     time.sleep(3)
     loop.close()
+

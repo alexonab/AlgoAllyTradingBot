@@ -16,6 +16,13 @@ class Settings():
     # Each entry trade will risk no more than this dollar amount and will be limited to this number of contracts.  Whichever comes first wins.
     MaxBet: Decimal = 100
     MaxContracts: int = 1
+    # Auto Scale allows dynamic position management
+    AutoScaleIn: bool = False
+    AutoScaleOut: bool = False
+    # If AutoScale is enabled, use the Auto Scale Amount to increase / decrease contract holding by set amount
+    ScaleAmount: int = 1
+    # Automatically execute a market sell order when the Scale Out alert is processed.  False = Limit order at Mark price
+    MarketSellOnScaleOut: bool = False
     # On Entry alerts, Avoid these tickers.  Add a new append line for each one.
     AvoidStocks = []
     AvoidStocks.append('TSLA')
@@ -40,10 +47,13 @@ class Settings():
     execute_from_test_channel: bool = False
     # Chanel Names to listen to
     test_channel: str = 'test'
-    alert_channel: str = 'ally-ideas'
+    alert_channel: str = 'trade-ideas'
     chat_channel: str = 'trade-floor'
     #Entry and exit regex.  These shouldn't need to be changed unless the signal format changes.  Test here by selecting python on the left: https://regex101.com/
     EntryRegex: str = r'^\[OPEN\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})\s*\[MARK\]\s*\$?\s*(?P<Mark>\d{0,3}\.?\d{0,4})'
+    AddRegex: str = r'^\[ADD\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})\s*\[MARK\]\s*\$?\s*(?P<Mark>\d{0,3}\.?\d{0,4})'
+    ScaleInRegex: str = r'^\[SCALE\sIN\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})\s*\[MARK\]\s*\$?\s*(?P<Mark>\d{0,3}\.?\d{0,4})'
+    ScaleOutRegex: str = r'^\[SCALE\sOUT\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})\s*\[MARK\]\s*\$?\s*(?P<Mark>\d{0,3}\.?\d{0,4})'
     UpdateRegex: str = r'^\[UPDATE\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})\s*\[MARK\]\s*\$?\s*(?P<Mark>\d{0,3}\.?\d{0,4})'
     DeactivateRegex: str = r'^\[CLOSE\]\s*\$?\s*(?P<Ticker>\w+)\s*\[TYPE\]\s*(?P<Type>CALL|PUT)S?\s*\[EXP\]\s*(?P<Exp>\d{1,2}\/\d{1,2})\s*\[STRIKE\]\s*\$?\s*(?P<Strike>\d{0,3}\.?\d{0,4})'
     # TastyWorks Creds.  If you don't have an account, create one with my referral code: https://start.tastyworks.com/#/login?referralCode=FK6S48BX47
