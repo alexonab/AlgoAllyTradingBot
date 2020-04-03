@@ -178,7 +178,7 @@ async def ProcessScaleInSignal(ScaleIn):
     LOGGER.info ('Scale In received for {0} Mark: {1}'.format(Ticker, CurrentPrice))
     LOGGER.info ('Getting Positions for {}...'.format(Ticker))
     if Settings.IncreaseEntryLimitOrderBy > 0 and Price > 3:
-        CurrentPrice = Decimal(math.ceil(Price / Decimal(.05)) * .05)
+        CurrentPrice = Decimal(math.ceil(CurrentPrice / Decimal(.05)) * .05)
     positions = await GetPositions(Ticker)
     if positions:
         LOGGER.info ('Found {} open position(s) for {}...'.format(len(positions), Ticker))
@@ -204,7 +204,7 @@ async def ProcessAddSignal(ScaleIn):
     LOGGER.info ('Add received for {0} Mark: {1}'.format(Ticker, CurrentPrice))
     LOGGER.info ('Getting Positions for {}...'.format(Ticker))
     if Settings.IncreaseEntryLimitOrderBy > 0 and Price > 3:
-        CurrentPrice = Decimal(math.ceil(Price / Decimal(.05)) * .05)
+        CurrentPrice = Decimal(math.ceil(CurrentPrice / Decimal(.05)) * .05)
     positions = await GetPositions(Ticker)
     if positions:
         LOGGER.info ('Found {} open position(s) for {}...'.format(len(positions), Ticker))
